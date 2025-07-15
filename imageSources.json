@@ -1,0 +1,277 @@
+[
+  {
+    "name": "hero-video",
+    "filename": "Hero.mp4",
+    "section": "homepage"
+  },
+  {
+    "name": "home-logo",
+    "filename": "photo-booth-llc.png",
+    "section": "homepage"
+  },
+  {
+    "name": "digital-social-booth",
+    "filename": "GuacChipsPhotosHighRes-169.jpg",
+    "section": "homepage"
+  },
+  {
+    "name": "gala-booth",
+    "filename": "home010.jpg",
+    "section": "homepage"
+  },
+  {
+    "name": "print-booth",
+    "filename": "GuacChipsPhotosHighRes-607.jpg",
+    "section": "homepage"
+  },
+  {
+    "name": "photo-booth-alt",
+    "filename": "photo-booth.png",
+    "section": "homepage"
+  },
+  {
+    "name": "electric-city-logo",
+    "filename": "Electric_City_Photo_Booths_LLC.png",
+    "section": "homepage"
+  },
+  {
+    "name": "equipment-1",
+    "filename": "IMG_4467.jpeg",
+    "section": "homepage"
+  },
+  {
+    "name": "photo-backdrop",
+    "filename": "GuacChipsPhotosHighRes-030.jpg",
+    "section": "homepage"
+  },
+  {
+    "name": "equipment-2",
+    "filename": "IMG_4468.jpeg",
+    "section": "homepage"
+  },
+  {
+    "name": "melissa-profile",
+    "filename": "melissa-brannan.jpeg",
+    "section": "homepage"
+  },
+  {
+    "name": "home-gif-1",
+    "filename": "photo-boot-21.mp4",
+    "section": "homepage"
+  },
+  {
+    "name": "home-gif-2",
+    "filename": "photo-booth12.mp4",
+    "section": "homepage"
+  },
+  {
+    "name": "home-gif-3",
+    "filename": "photo-booth123.mp4",
+    "section": "homepage"
+  },
+  {
+    "name": "gallery-logo",
+    "filename": "photo-booth-llc.png",
+    "section": "gallery"
+  },
+  {
+    "name": "gallery-01",
+    "filename": "Mallie_Grace_Tavernier_Graduation_Party_photo_20250509_Time-200549_cd33gl.jpeg",
+    "section": "gallery"
+  },
+  {
+    "name": "gallery-02",
+    "filename": "m6.jpeg",
+    "section": "gallery"
+  },
+  {
+    "name": "gallery-03",
+    "filename": "m8.jpeg",
+    "section": "gallery"
+  },
+  {
+    "name": "gallery-04",
+    "filename": "m7.jpeg",
+    "section": "gallery"
+  },
+  {
+    "name": "gallery-05",
+    "filename": "m5.jpeg",
+    "section": "gallery"
+  },
+  {
+    "name": "gallery-06",
+    "filename": "Mallie_Grace_Tavernier_Graduation_Party_photo_20250509_Time-210561_ij1yx7.jpeg",
+    "section": "gallery"
+  },
+  {
+    "name": "gallery-07",
+    "filename": "Mallie_Grace_Tavernier_Graduation_Party_photo_20250509_Time-200557_1muwc7.jpeg",
+    "section": "gallery"
+  },
+  {
+    "name": "gallery-08",
+    "filename": "Mallie_Grace_Tavernier_Graduation_Party_photo_20250509_Time-200564_bbhamw.jpeg",
+    "section": "gallery"
+  },
+  {
+    "name": "gallery-09",
+    "filename": "m1.jpeg",
+    "section": "gallery"
+  },
+  {
+    "name": "gallery-10",
+    "filename": "m2.jpeg",
+    "section": "gallery"
+  },
+  {
+    "name": "gallery-11",
+    "filename": "m3.jpeg",
+    "section": "gallery"
+  },
+  {
+    "name": "gallery-12",
+    "filename": "m4.jpeg",
+    "section": "gallery"
+  },
+  {
+    "name": "gallery-13",
+    "filename": "Mallie_Grace_Tavernier_Graduation_Party_photo_20250509_Time-200522_nb6yne.jpeg",
+    "section": "gallery"
+  },
+  {
+    "name": "gallery-14",
+    "filename": "Blake_Gambrell_Graduation_Party_photo_20250511_Time-170518_b3srfi.jpeg",
+    "section": "gallery"
+  },
+  {
+    "name": "gallery-15",
+    "filename": "Blake_Gambrell_Graduation_Party_photo_20250511_Time-170550_3cn2pa.jpeg",
+    "section": "gallery"
+  },
+  {
+    "name": "gallery-16",
+    "filename": "Blake_Gambrell_Graduation_Party_photo_20250511_Time-170594_dgyzdm.jpeg",
+    "section": "gallery"
+  },
+  {
+    "name": "gallery-17",
+    "filename": "Blake_Gambrell_Graduation_Party_photo_20250511_Time-180525_gxoa4s.jpeg",
+    "section": "gallery"
+  },
+  {
+    "name": "gallery-18",
+    "filename": "Blake_Gambrell_Graduation_Party_photo_20250511_Time-180530_vigkbm.jpeg",
+    "section": "gallery"
+  },
+  {
+    "name": "gif-1",
+    "filename": "Mallie_Grace_Tavernier_Graduation_Party_boomerang_20250509_Time-190573_5g1tzl.mp4",
+    "section": "gallery"
+  },
+  {
+    "name": "gif-2",
+    "filename": "Mallie_Grace_Tavernier_Graduation_Party_gif_20250509_Time-180534_7ym071.mp4",
+    "section": "gallery"
+  },
+  {
+    "name": "gif-3",
+    "filename": "Mallie_Grace_Tavernier_Graduation_Party_gif_20250509_Time-200597_clkbks.mp4",
+    "section": "gallery"
+  },
+  {
+    "name": "gif-4",
+    "filename": "Kaitlyn_Fleming_Graduation_Party_gif_20250503_Time-180501_woezi3.mp4",
+    "section": "gallery"
+  },
+  {
+    "name": "gif-5",
+    "filename": "Kaitlyn_Fleming_Graduation_Party_gif_20250503_Time-180501_woezi3.mp4",
+    "section": "gallery"
+  },
+  {
+    "name": "gif-6",
+    "filename": "Kaitlyn_Fleming_Graduation_Party_gif_20250503_Time-190526_xhmv1x.mp4",
+    "section": "gallery"
+  },
+  {
+    "name": "equipment-logo-main",
+    "filename": "photo-booth.png",
+    "section": "equipment"
+  },
+  {
+    "name": "equipment-brand",
+    "filename": "Electric_City_Photo_Booths_LLC.png",
+    "section": "equipment"
+  },
+  {
+    "name": "equipment-img-4467",
+    "filename": "IMG_4467.jpeg",
+    "section": "equipment"
+  },
+  {
+    "name": "equipment-img-030",
+    "filename": "GuacChipsPhotosHighRes-030.jpg",
+    "section": "equipment"
+  },
+  {
+    "name": "equipment-img-4468",
+    "filename": "IMG_4468.jpeg",
+    "section": "equipment"
+  },
+  {
+    "name": "equipment-img-4466",
+    "filename": "IMG_4466.jpeg",
+    "section": "equipment"
+  },
+  {
+    "name": "equipment-img-5168",
+    "filename": "IMG_5168.jpg",
+    "section": "equipment"
+  },
+  {
+    "name": "equipment-img-030-2",
+    "filename": "GuacChipsPhotosHighRes-030.jpg",
+    "section": "equipment"
+  },
+  {
+    "name": "equipment-img-026",
+    "filename": "GuacChipsPhotosHighRes-026.jpg",
+    "section": "equipment"
+  },
+  {
+    "name": "equipment-img-5355",
+    "filename": "IMG_5355.jpg",
+    "section": "equipment"
+  },
+  {
+    "name": "equipment-img-326",
+    "filename": "GuacChipsPhotosHighRes-326.jpeg",
+    "section": "equipment"
+  },
+  {
+    "name": "equipment-img-rendering41",
+    "filename": "Guac Rendering41.png",
+    "section": "equipment"
+  },
+  {
+    "name": "contact-logo",
+    "filename": "photo-booth-llc.png",
+    "section": "contact"
+  },
+  {
+    "name": "about-logo",
+    "filename": "photo-booth-llc.png",
+    "section": "about"
+  },
+  {
+    "name": "about-melissa",
+    "filename": "melissa-brannan.jpeg",
+    "section": "about"
+  },
+  {
+    "name": "about-footer-logo",
+    "filename": "photo-booth-llc.png",
+    "section": "about"
+  }
+]
