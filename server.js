@@ -1,3 +1,5 @@
+// run node seed.js to upload media to DB
+
 const express = require("express");
 const mongoose = require("mongoose");
 const path = require("path");
