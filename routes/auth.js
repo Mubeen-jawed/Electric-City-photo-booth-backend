@@ -12,8 +12,8 @@ router.post("/login", (req, res) => {
   const lowerCaseUsername = username.toLowerCase();
 
   if (
-    lowerCaseUsername === process.env.ADMIN_USERNAME &&
-    password === process.env.ADMIN_PASSWORD
+    lowerCaseUsername === ADMIN_CREDENTIALS.username &&
+    password === ADMIN_CREDENTIALS.password
   ) {
     return res.status(200).json({ message: "Authenticated" });
   }

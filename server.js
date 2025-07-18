@@ -10,27 +10,9 @@ const session = require("express-session");
 
 dotenv.config();
 const app = express();
-const allowedOrigins = [
-  "http://localhost:5500",
-  "https://electric-city-photo-booth-frontend.vercel.app",
-  "https://electric-city-photo-booth-git-a3aade-mubeens-projects-c9df0db5.vercel.app", // ✅ your preview deployment
-  "http://electriccityphotobooths.com",
-  "https://darling-bavarois-4732f7.netlify.app",
-];
 
 // Middleware
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-  })
-);
+app.use(cors());
 app.use(express.json());
 app.use("/api", authRoutes);
 app.use("/api/images", imageRoutesUpload);
