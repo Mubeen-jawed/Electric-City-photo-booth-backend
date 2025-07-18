@@ -11,9 +11,10 @@ const session = require("express-session");
 dotenv.config();
 const app = express();
 const allowedOrigins = [
-  "http://localhost:5500", // Dev local
-  "https://electric-city-photo-booth-frontend.vercel.app", // Vercel frontend
-  "http://electriccityphotobooths.com", // Custom domain,
+  "http://localhost:5500",
+  "https://electric-city-photo-booth-frontend.vercel.app",
+  "https://electric-city-photo-booth-git-a3aade-mubeens-projects-c9df0db5.vercel.app", // ✅ your preview deployment
+  "http://electriccityphotobooths.com",
   "https://darling-bavarois-4732f7.netlify.app",
 ];
 
