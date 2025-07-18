@@ -21,6 +21,7 @@ router.post("/login", (req, res) => {
 
 // ✅ Route to check if user is authenticated
 router.get("/check-auth", (req, res) => {
+  console.log("Session:", req.session);
   if (req.session.isAuthenticated) {
     return res.json({ authenticated: true });
   }
