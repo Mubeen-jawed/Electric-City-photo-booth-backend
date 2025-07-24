@@ -3,7 +3,6 @@ const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
 const Image = require("../models/Image");
-const seedImages = require("../seed.js");
 
 const router = express.Router();
 
