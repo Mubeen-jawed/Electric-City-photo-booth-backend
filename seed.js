@@ -3,7 +3,7 @@ const Image = require("./models/Image");
 const images = require("./imageSources.json");
 const dotenv = require("dotenv");
 
-dotenv.config();
+// dotenv.config();
 
 async function seedImages() {
   try {
@@ -11,11 +11,13 @@ async function seedImages() {
     await Image.deleteMany({});
     await Image.insertMany(images);
     console.log("✅ Image metadata seeded");
-    process.exit();
+    // process.exit();
   } catch (err) {
     console.error("❌ Error seeding DB:", err);
-    process.exit(1);
+    // process.exit(1);
+    throw err;
   }
 }
 
-seedImages();
+// seedImages();
+module.exports = seedImages;

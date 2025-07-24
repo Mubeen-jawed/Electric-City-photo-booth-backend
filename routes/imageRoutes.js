@@ -3,6 +3,7 @@ const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
 const Image = require("../models/Image");
+const seedImages = require("../seed.js");
 
 const router = express.Router();
 
@@ -75,6 +76,8 @@ router.post(
 
       existing.filename = newFilename;
       await existing.save();
+
+      await seedImages(); //////////////////
 
       return res.status(200).json({ success: true, filename: newFilename });
     } catch (err) {
