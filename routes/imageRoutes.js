@@ -77,7 +77,7 @@ router.post(
       existing.filename = newFilename;
       await existing.save();
 
-      await seedImages(); //////////////////
+      // await seedImages(); //////////////////
 
       return res.status(200).json({ success: true, filename: newFilename });
     } catch (err) {
