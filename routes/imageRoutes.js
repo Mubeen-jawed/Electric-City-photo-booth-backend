@@ -88,7 +88,62 @@ router.post(
   }
 );
 
-// ✅ Media streaming/serving route
+router.post(
+  "/addNewImages",
+  (req, res, next) => {
+    upload.single("image")(req, res, (err) => {
+      if (err) {
+        console.error("Upload error:", err.message);
+        return res.status(400).json({ success: false, message: err.message });
+      }
+      next();
+    });
+  },
+  async (req, res) => {
+    console.log("BODY:", req.body);
+    console.log("FILE:", req.file);
+
+    const { name, section } = req.body;
+    const newFilename = req.file?.filename;
+
+    if (!name || !newFilename) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing name or file" });
+    }
+
+    try {
+      // Check if name already exists to avoid duplicates
+      const existing = await Image.findOne({ name });
+      if (existing) {
+        return res
+          .status(409)
+          .json({ success: false, message: "Image name already exists" });
+      }
+
+      // Create new Image entry
+      const newImage = new Image({
+        name,
+        filename: newFilename,
+        section: section || "default", // or whatever default section you want
+      });
+
+      await newImage.save();
+
+      return res.status(201).json({
+        success: true,
+        message: "Image uploaded",
+        filename: newFilename,
+      });
+    } catch (err) {
+      console.error("Server error:", err.message);
+      return res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  }
+);
+
 router.get("/:name", async (req, res) => {
   const { name } = req.params;
 
