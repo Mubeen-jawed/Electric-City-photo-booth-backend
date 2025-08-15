@@ -67,8 +67,8 @@ router.get("/section/:section", async (req, res) => {
     });
     res.json({
       success: true,
-      name: image.name,
-      filename: image.filename,
+      name: images.name,
+      filename: images.filename,
     });
   } catch (e) {
     console.error("Section list error:", e.message);
