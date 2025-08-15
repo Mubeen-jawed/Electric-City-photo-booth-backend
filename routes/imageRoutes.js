@@ -65,7 +65,11 @@ router.get("/section/:section", async (req, res) => {
     const images = await Image.find({ section: req.params.section }).sort({
       _id: -1,
     });
-    res.json({ success: true, images });
+    res.json({
+      success: true,
+      name: image.name,
+      filename: image.filename,
+    });
   } catch (e) {
     console.error("Section list error:", e.message);
     res.status(500).json({ success: false, message: "Internal server error" });
