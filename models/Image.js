@@ -5,5 +5,6 @@ const imageSchema = new mongoose.Schema({
   filename: { type: String, required: true }, // e.g. 'hero-banner.jpg'
   section: { type: String }, // optional: e.g. 'homepage', 'gallery'
 });
+imageSchema.index({ name: 1 }, { unique: true });
 
 module.exports = mongoose.model("Image", imageSchema);
