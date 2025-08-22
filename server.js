@@ -25,10 +25,7 @@ mongoose
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
-  .then(() => 
-    console.log("✅ Mongo connected")
-await Image.syncIndexes();
-)
+  .then(() => console.log("✅ Mongo connected"))
   .catch((err) => console.error("Mongo error:", err));
 
 const PORT = process.env.PORT || 5000;

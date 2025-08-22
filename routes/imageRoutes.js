@@ -105,7 +105,8 @@ router.post(
   "/upload",
   (req, res, next) => {
     upload.single("image")(req, res, (err) => {
-      if (err) return res.status(400).json({ success: false, message: err.message });
+      if (err)
+        return res.status(400).json({ success: false, message: err.message });
       next();
     });
   },
@@ -113,7 +114,9 @@ router.post(
     try {
       const { name, newName, section } = req.body;
       if (!req.file || !name) {
-        return res.status(400).json({ success: false, message: "Missing name or file" });
+        return res
+          .status(400)
+          .json({ success: false, message: "Missing name or file" });
       }
 
       const targetName = newName && newName !== name ? newName : name;
@@ -122,7 +125,9 @@ router.post(
       if (targetName !== name) {
         const clash = await Image.findOne({ name: targetName });
         if (clash) {
-          return res.status(409).json({ success: false, message: "newName already exists" });
+          return res
+            .status(409)
+            .json({ success: false, message: "newName already exists" });
         }
       }
 
@@ -152,7 +157,9 @@ router.post(
       if (oldFilenameToDelete && oldFilenameToDelete !== doc.filename) {
         const oldPath = path.join(UPLOAD_DIR, oldFilenameToDelete);
         if (fs.existsSync(oldPath)) {
-          try { fs.unlinkSync(oldPath); } catch {}
+          try {
+            fs.unlinkSync(oldPath);
+          } catch {}
         }
       }
 
@@ -165,62 +172,12 @@ router.post(
       });
     } catch (e) {
       console.error("upload replace error:", e);
-      return res.status(500).json({ success: false, message: "Internal server error" });
+      return res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
     }
   }
 );
-This is the key change that makes replace edits “stick” the same way as addNew.
-
-3) Harden the simple “serve by name” router
-Right now it’s:
-
-js
-Copy
-Edit
-router.get("/:name", async (req, res) => {
-  const { name } = req.params;
-  const image = await Image.findOne({ name });
-  if (!image) return res.status(404).send("Image not found");
-  res.sendFile(path.resolve(__dirname, `../uploads/${image.filename}`));
-});
-Make it resilient to missing files, use a constant UPLOAD_DIR, add cache headers, and avoid duplicate /:name conflicts with any other image router:
-
-js
-Copy
-Edit
-const express = require("express");
-const router = express.Router();
-const Image = require("../models/Image");
-const path = require("path");
-const fs = require("fs");
-
-const UPLOAD_DIR = path.resolve(__dirname, "../uploads");
-
-// GET image binary by name (mount this under a path like /api/images/file/ to avoid conflicts)
-router.get("/file/:name", async (req, res) => {
-  try {
-    const { name } = req.params;
-    const image = await Image.findOne({ name });
-    if (!image) return res.status(404).send("Image not found");
-
-    const filePath = path.join(UPLOAD_DIR, image.filename);
-    if (!fs.existsSync(filePath)) return res.status(404).send("File not found");
-
-    res.setHeader("Cache-Control", "public, max-age=3600");
-    return res.sendFile(filePath);
-  } catch (e) {
-    console.error("GET /file/:name error:", e);
-    return res.status(500).send("Server error");
-  }
-});
-
-// GET all image metadata
-router.get("/", async (req, res) => {
-  const images = await Image.find().sort({ _id: -1 });
-  res.json(images);
-});
-
-module.exports = router;
 // ---- OPTIONS + HEAD ----
 router.options("/:name", (req, res) => {
   setCORS(res);
