@@ -1,205 +1,171 @@
 const express = require("express");
-const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
+const multer = require("multer");
 const Image = require("../models/Image");
 
 const router = express.Router();
 
-// ---- Ensure uploads dir exists (important on fresh deploys) ----
+// ---- Upload directory ----
 const UPLOAD_DIR = path.join(__dirname, "../uploads");
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
-// ✅ Allowed MIME types
-const allowedTypes = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-  "video/mp4",
-  "video/webm",
-];
+// ---- MIME map ----
+const MIME_BY_EXT = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".webp": "image/webp", // image only
+  ".gif": "image/gif",
+  ".mp4": "video/mp4",
+  ".webm": "video/webm",
+  ".mov": "video/quicktime",
+};
+const VIDEO_EXT = new Set([".mp4", ".webm", ".mov"]);
 
-// ✅ Multer config
+// ---- Multer ----
 const storage = multer.diskStorage({
-  destination: function (_req, _file, cb) {
-    cb(null, UPLOAD_DIR);
-  },
-  filename: function (_req, file, cb) {
-    const ext = path.extname(file.originalname);
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, `media-${uniqueSuffix}${ext}`);
+  destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
+  filename: (_req, file, cb) => {
+    const ext = (path.extname(file.originalname) || "").toLowerCase();
+    const id = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    cb(null, `media-${id}${ext}`);
   },
 });
-
 const fileFilter = (_req, file, cb) => {
-  if (allowedTypes.includes(file.mimetype)) cb(null, true);
-  else cb(new Error("Unsupported file type"), false);
+  const ok = /^image\/(jpeg|png|webp|gif)$|^video\/(mp4|webm|quicktime)$/.test(
+    file.mimetype
+  );
+  cb(ok ? null : new Error("Unsupported file type"), ok);
 };
-
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 25 * 1024 * 1024 }, // 25 MB (adjust if needed)
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB
 });
 
-// ---------------------
-//   LIST (for gallery)
-// ---------------------
+// ---- Helpers ----
+function setCORS(res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Range, Content-Type");
+  res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+}
 
-// List all images/videos (for admin or simple gallery)
-router.get("/", async (_req, res) => {
-  try {
-    const images = await Image.find().sort({ _id: -1 });
-    res.json({ success: true, images });
-  } catch (e) {
-    console.error("List error:", e.message);
-    res.status(500).json({ success: false, message: "Internal server error" });
-  }
-});
-
-// List by section (e.g., /api/images/section/equipment)
-// IMPORTANT: define this BEFORE "/:name" so it doesn't get captured by that route
+// ---- LIST by section ----
 router.get("/section/:section", async (req, res) => {
   try {
     const images = await Image.find({ section: req.params.section }).sort({
       _id: -1,
     });
-    res.json({
-      success: true,
-      name: images.name,
-      filename: images.filename,
-    });
+    res.json({ success: true, images });
   } catch (e) {
-    console.error("Section list error:", e.message);
+    console.error("Section list error:", e);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
 
-// ---------------------
-//   CREATE new record
-// ---------------------
+// ---- ADD NEW ----
 router.post(
   "/addNewImages",
-  (req, res, next) => {
+  (req, res, next) =>
     upload.single("image")(req, res, (err) => {
-      if (err) {
-        console.error("Upload error:", err.message);
+      if (err)
         return res.status(400).json({ success: false, message: err.message });
-      }
       next();
-    });
-  },
+    }),
   async (req, res) => {
-    // debug (optional)
-    // console.log("BODY:", req.body);
-    // console.log("FILE:", req.file);
-
-    const { name, section } = req.body;
-    const newFilename = req.file?.filename;
-
-    if (!name || !newFilename) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Missing name or file" });
-    }
-
     try {
-      // Avoid duplicates by name (schema enforces unique too)
-      const existing = await Image.findOne({ name });
-      if (existing) {
+      const { name, section } = req.body;
+      if (!req.file || !name || !section) {
         return res
-          .status(409)
-          .json({ success: false, message: "Image name already exists" });
+          .status(400)
+          .json({ success: false, message: "Missing fields" });
       }
-
-      const newImage = new Image({
-        name,
-        filename: newFilename,
-        section: section || "default",
-      });
-
-      await newImage.save();
-
-      // Return full URL so frontend can swap src to the persisted file
-      const fullUrl = `${req.protocol}://${req.get(
-        "host"
-      )}/uploads/${newFilename}`;
-
-      return res.status(201).json({
+      const image = new Image({ name, filename: req.file.filename, section });
+      await image.save();
+      res.json({
         success: true,
-        message: "Image uploaded",
-        filename: newFilename,
-        url: fullUrl,
+        name: image.name,
+        filename: image.filename,
+        url: `/uploads/${image.filename}`,
       });
-    } catch (err) {
-      console.error("Server error:", err.message);
-      return res
+    } catch (e) {
+      console.error("addNewImages error:", e);
+      res
         .status(500)
         .json({ success: false, message: "Internal server error" });
     }
   }
 );
 
-// ---------------------
-//   UPDATE existing by name (replace file)
-// ---------------------
+// ---- REPLACE (upload new by name) ----
+// ---- UPSERT (edit existing OR create if missing) ----
 router.post(
   "/upload",
   (req, res, next) => {
     upload.single("image")(req, res, (err) => {
-      if (err) {
-        console.error("Upload error:", err.message);
+      if (err)
         return res.status(400).json({ success: false, message: err.message });
-      }
       next();
     });
   },
   async (req, res) => {
-    const { name } = req.body;
-    const newFilename = req.file?.filename;
-
-    if (!name || !newFilename) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Missing name or file" });
-    }
-
     try {
-      const existing = await Image.findOne({ name });
-
-      if (!existing) {
+      const { name, newName, section } = req.body;
+      if (!req.file || !name) {
         return res
-          .status(404)
-          .json({ success: false, message: "Image entry not found in DB" });
+          .status(400)
+          .json({ success: false, message: "Missing name or file" });
       }
 
-      // Delete old file if present
-      if (existing.filename) {
-        const oldPath = path.join(UPLOAD_DIR, existing.filename);
-        if (fs.existsSync(oldPath)) {
-          try {
-            fs.unlinkSync(oldPath);
-          } catch (e) {
-            console.warn("Could not delete old file:", e.message);
-          }
+      // try find by current name
+      let doc = await Image.findOne({ name });
+
+      // if renaming, ensure target name is free (or same doc)
+      if (newName && newName !== name) {
+        const clash = await Image.findOne({ name: newName });
+        if (clash) {
+          return res
+            .status(409)
+            .json({ success: false, message: "newName already exists" });
         }
       }
 
-      existing.filename = newFilename;
-      await existing.save();
+      if (!doc) {
+        // create new if not found (auto-seed behavior)
+        doc = new Image({
+          name: newName || name,
+          filename: req.file.filename,
+          section: section || "gallery",
+        });
+        await doc.save();
+      } else {
+        // update existing
+        // delete old file (best-effort)
+        if (doc.filename) {
+          const oldPath = path.join(UPLOAD_DIR, doc.filename);
+          if (fs.existsSync(oldPath)) {
+            try {
+              fs.unlinkSync(oldPath);
+            } catch {}
+          }
+        }
+        doc.filename = req.file.filename;
+        if (section) doc.section = section; // allow section change when provided
+        if (newName && newName !== name) doc.name = newName;
+        await doc.save();
+      }
 
-      const fullUrl = `${req.protocol}://${req.get(
-        "host"
-      )}/uploads/${newFilename}`;
-
-      return res.status(200).json({
+      return res.json({
         success: true,
-        filename: newFilename,
-        url: fullUrl,
+        name: doc.name,
+        filename: doc.filename,
+        section: doc.section,
+        url: `/uploads/${doc.filename}`,
       });
-    } catch (err) {
-      console.error("Server error:", err.message);
+    } catch (e) {
+      console.error("upload upsert error:", e);
       return res
         .status(500)
         .json({ success: false, message: "Internal server error" });
@@ -207,73 +173,113 @@ router.post(
   }
 );
 
-// ---------------------
-//   STREAM by "name"
-// ---------------------
-// NOTE: keep this AFTER more specific routes like /section/:section
-router.get("/:name", async (req, res) => {
-  const { name } = req.params;
-
+// ---- OPTIONS + HEAD ----
+router.options("/:name", (req, res) => {
+  setCORS(res);
+  res.sendStatus(200);
+});
+router.head("/:name", async (req, res) => {
   try {
-    const image = await Image.findOne({ name });
-    if (!image) return res.status(404).send("Image not found");
+    const doc = await Image.findOne({ name: req.params.name });
+    if (!doc) return res.sendStatus(404);
 
-    const filePath = path.join(UPLOAD_DIR, image.filename);
-    const ext = path.extname(image.filename).toLowerCase();
+    const filePath = path.join(UPLOAD_DIR, doc.filename);
+    if (!fs.existsSync(filePath)) return res.sendStatus(404);
 
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).send("File not found");
-    }
+    const ext = path.extname(doc.filename).toLowerCase();
+    const mime = MIME_BY_EXT[ext] || "application/octet-stream";
+    const size = fs.statSync(filePath).size;
 
-    const stat = fs.statSync(filePath);
-    const fileSize = stat.size;
+    setCORS(res);
+    res.setHeader("Content-Type", mime);
+    res.setHeader("Accept-Ranges", "bytes");
+    res.setHeader("Content-Length", size);
+    res.setHeader("Cache-Control", "public, max-age=3600");
+    res.end();
+  } catch (e) {
+    console.error("HEAD error:", e);
+    res.sendStatus(500);
+  }
+});
+
+// ---- SERVE FILES ----
+router.get("/:name", async (req, res) => {
+  try {
+    const doc = await Image.findOne({ name: req.params.name });
+    if (!doc) return res.status(404).send("Not found");
+
+    const filePath = path.join(UPLOAD_DIR, doc.filename);
+    if (!fs.existsSync(filePath)) return res.status(404).send("File not found");
+
+    const ext = path.extname(doc.filename).toLowerCase();
+    const mime = MIME_BY_EXT[ext] || "application/octet-stream";
+    const fileSize = fs.statSync(filePath).size;
     const range = req.headers.range;
 
-    // ✅ Stream video with range
-    if (ext === ".mp4" || ext === ".webm") {
-      const contentType = ext === ".mp4" ? "video/mp4" : "video/webm";
+    setCORS(res);
+    res.setHeader("Cache-Control", "public, max-age=3600");
+    res.setHeader("Accept-Ranges", "bytes");
 
+    // --- Video streaming with Range ---
+    if (VIDEO_EXT.has(ext)) {
+      res.setHeader("Content-Type", mime);
       if (range) {
-        const parts = range.replace(/bytes=/, "").split("-");
-        const start = parseInt(parts[0], 10);
-        const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+        const [startStr, endStr] = range.replace(/bytes=/, "").split("-");
+        const start = parseInt(startStr, 10) || 0;
+        let end = endStr ? parseInt(endStr, 10) : fileSize - 1;
+        if (end >= fileSize) end = fileSize - 1;
+
+        if (start >= fileSize) {
+          res.status(416).setHeader("Content-Range", `bytes */${fileSize}`);
+          return res.end();
+        }
 
         const chunkSize = end - start + 1;
-        const file = fs.createReadStream(filePath, { start, end });
+        res
+          .status(206)
+          .setHeader("Content-Range", `bytes ${start}-${end}/${fileSize}`);
+        res.setHeader("Content-Length", chunkSize);
 
-        res.writeHead(206, {
-          "Content-Range": `bytes ${start}-${end}/${fileSize}`,
-          "Accept-Ranges": "bytes",
-          "Content-Length": chunkSize,
-          "Content-Type": contentType,
-        });
-
-        file.pipe(res);
-      } else {
-        res.writeHead(200, {
-          "Content-Length": fileSize,
-          "Content-Type": contentType,
-        });
-
-        fs.createReadStream(filePath).pipe(res);
+        return fs.createReadStream(filePath, { start, end }).pipe(res);
       }
-    } else {
-      // ✅ Serve image directly
-      const contentTypeMap = {
-        ".jpg": "image/jpeg",
-        ".jpeg": "image/jpeg",
-        ".png": "image/png",
-        ".webp": "image/webp",
-        ".gif": "image/gif",
-      };
 
-      const contentType = contentTypeMap[ext] || "application/octet-stream";
-      res.setHeader("Content-Type", contentType);
-      fs.createReadStream(filePath).pipe(res);
+      res.setHeader("Content-Length", fileSize);
+      return fs.createReadStream(filePath).pipe(res);
     }
+
+    // --- Non-video: serve as normal ---
+    res.setHeader("Content-Type", mime);
+    res.setHeader("Content-Length", fileSize);
+    return fs.createReadStream(filePath).pipe(res);
   } catch (err) {
-    console.error("Streaming error:", err.message);
-    return res.status(500).send("Server error");
+    console.error("stream error:", err);
+    res.status(500).send("Server error");
+  }
+});
+
+// ---- DELETE ----
+router.delete("/:name", async (req, res) => {
+  try {
+    const doc = await Image.findOne({ name: req.params.name });
+    if (!doc)
+      return res
+        .status(404)
+        .json({ success: false, message: "Not found in DB" });
+
+    const fp = path.join(UPLOAD_DIR, doc.filename);
+    if (fs.existsSync(fp)) {
+      try {
+        fs.unlinkSync(fp);
+      } catch (e) {
+        console.warn("unlink failed:", e.message);
+      }
+    }
+
+    await Image.deleteOne({ _id: doc._id });
+    res.json({ success: true });
+  } catch (e) {
+    console.error("DELETE error:", e);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
