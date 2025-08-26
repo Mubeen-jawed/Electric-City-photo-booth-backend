@@ -178,6 +178,7 @@ router.options("/:name", (req, res) => {
   setCORS(res);
   res.sendStatus(200);
 });
+
 router.head("/:name", async (req, res) => {
   try {
     const doc = await Image.findOne({ name: req.params.name });
