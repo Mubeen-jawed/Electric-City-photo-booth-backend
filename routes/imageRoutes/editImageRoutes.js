@@ -1,167 +1,133 @@
-const express2 = require("express");
-const fs2 = require("fs");
-const path2 = require("path");
-const Image2 = require("../../models/Image");
-const { upload: upload2, UPLOAD_DIR: UPLOAD_DIR2 } = require("./_mediaCommon");
+// routes/editImageRoutes.js
+const express = require("express");
+const fs = require("fs");
+const path = require("path");
+const Image = require("../../models/Image");
+const { upload, UPLOAD_DIR } = require("./_mediaCommon"); // from your first patch
 
-const edit = express2.Router();
+const router = express.Router();
 
-// Backward-compatible UPSERT (same path as before)
-edit.post(
+// tiny helper to escape regex
+const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+// ACCEPT image|video|file from ANY page; persist to Mongo; keep section unless explicitly changed.
+router.post(
   "/upload",
-  (req, res, next) => {
-    upload2.single("image")(req, res, (err) => {
-      if (err)
-        return res.status(400).json({ success: false, message: err.message });
-      next();
-    });
-  },
-  async (req, res) => {
-    try {
-      const { name, newName, section } = req.body;
-      if (!req.file || !name) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Missing name or file" });
-      }
-
-      let doc = await Image2.findOne({ name });
-
-      // If renaming, ensure target is free
-      if (newName && newName !== name) {
-        const clash = await Image2.findOne({ name: newName });
-        if (clash) {
-          return res
-            .status(409)
-            .json({ success: false, message: "newName already exists" });
-        }
-      }
-
-      if (!doc) {
-        // keep legacy auto-create behavior to avoid breaking frontend
-        doc = new Image2({
-          name: newName || name,
-          filename: req.file.filename,
-          section: section || "gallery",
-        });
-        await doc.save();
-      } else {
-        // replace file
-        if (doc.filename) {
-          const oldPath = path2.join(UPLOAD_DIR2, doc.filename);
-          if (fs2.existsSync(oldPath)) {
-            try {
-              fs2.unlinkSync(oldPath);
-            } catch {}
-          }
-        }
-        doc.filename = req.file.filename;
-        if (section) doc.section = section;
-        if (newName && newName !== name) doc.name = newName;
-        await doc.save();
-      }
-
-      return res.json({
-        success: true,
-        name: doc.name,
-        filename: doc.filename,
-        section: doc.section,
-        url: `/uploads/${doc.filename}`,
-      });
-    } catch (e) {
-      console.error("upload upsert error:", e);
-      return res
-        .status(500)
-        .json({ success: false, message: "Internal server error" });
-    }
-  }
-);
-
-// Strict EDIT-only alternative (optional; won't auto-create)
-edit.post(
-  "/edit",
   (req, res, next) =>
-    upload2.single("image")(req, res, (err) => {
+    upload.any()(req, res, (err) => {
       if (err)
         return res.status(400).json({ success: false, message: err.message });
       next();
     }),
   async (req, res) => {
+    console.log("HIT /upload", {
+      body: req.body,
+      files: (req.files || []).map((f) => ({
+        field: f.fieldname,
+        fn: f.filename,
+        mime: f.mimetype,
+      })),
+    });
+
     try {
-      const { name, newName, section } = req.body;
-      if (!req.file || !name)
+      // pick first uploaded file (multer.any puts them in req.files[])
+      console.log("Try");
+
+      const file =
+        req.file ||
+        (Array.isArray(req.files) && req.files[0]) ||
+        req?.files?.image?.[0] ||
+        req?.files?.video?.[0] ||
+        req?.files?.file?.[0] ||
+        null;
+
+      const rawName = String(req.body.name || "").trim();
+      const rawNewName =
+        req.body.newName != null ? String(req.body.newName).trim() : "";
+      const bodySection =
+        req.body.section != null ? String(req.body.section).trim() : "";
+
+      if (!file || !rawName)
         return res
           .status(400)
           .json({ success: false, message: "Missing name or file" });
 
-      const doc = await Image2.findOne({ name });
-      if (!doc)
-        return res
-          .status(404)
-          .json({ success: false, message: "Image not found" });
+      // Try exact match first
+      let existing = await Image.findOne({ name: rawName });
 
-      if (newName && newName !== name) {
-        const clash = await Image2.findOne({ name: newName });
+      // Fallback: case-insensitive match (helps if some pages differ in case)
+      if (!existing) {
+        existing = await Image.findOne({
+          name: { $regex: new RegExp(`^${esc(rawName)}$`, "i") },
+        });
+      }
+
+      const nextName =
+        rawNewName && rawNewName !== (existing?.name || rawName)
+          ? rawNewName
+          : existing?.name || rawName;
+
+      // Prevent rename collision
+      if (existing && nextName !== existing.name) {
+        const clash = await Image.findOne({ name: nextName });
         if (clash)
           return res
             .status(409)
             .json({ success: false, message: "newName already exists" });
       }
 
-      // replace file
-      if (doc.filename) {
-        const oldPath = path2.join(UPLOAD_DIR2, doc.filename);
-        if (fs2.existsSync(oldPath)) {
-          try {
-            fs2.unlinkSync(oldPath);
-          } catch {}
-        }
-      }
-      doc.filename = req.file.filename;
-      if (section) doc.section = section;
-      if (newName && newName !== name) doc.name = newName;
-      await doc.save();
+      // --- UPDATE EXISTING ---
+      if (existing) {
+        const oldFilename = existing.filename;
 
-      res.json({
+        existing.filename = file.filename;
+        if (bodySection) existing.section = bodySection; // only change section when explicitly provided
+        if (nextName !== existing.name) existing.name = nextName;
+
+        await existing.save(); // <— PERSIST TO DB
+
+        if (oldFilename && oldFilename !== existing.filename) {
+          const oldPath = path.join(UPLOAD_DIR, oldFilename);
+          if (fs.existsSync(oldPath)) fs.unlink(oldPath, () => {});
+        }
+
+        return res.json({
+          success: true,
+          name: existing.name,
+          filename: existing.filename,
+          section: existing.section,
+          url: `/uploads/${existing.filename}`,
+        });
+      }
+
+      // --- CREATE IF MISSING (ONLY when section is provided, so equipment stays in equipment) ---
+      if (!bodySection) {
+        return res.status(404).json({
+          success: false,
+          message: "Image not found; include `section` to create it here.",
+        });
+      }
+
+      const created = await Image.create({
+        name: nextName,
+        filename: file.filename,
+        section: bodySection,
+      });
+
+      return res.json({
         success: true,
-        name: doc.name,
-        filename: doc.filename,
-        section: doc.section,
-        url: `/uploads/${doc.filename}`,
+        name: created.name,
+        filename: created.filename,
+        section: created.section,
+        url: `/uploads/${created.filename}`,
       });
     } catch (e) {
-      console.error("edit error:", e);
-      res
+      console.error("upload edit error:", e);
+      return res
         .status(500)
         .json({ success: false, message: "Internal server error" });
     }
   }
 );
 
-// Delete by logical name
-edit.delete("/:name", async (req, res) => {
-  try {
-    const doc = await Image2.findOne({ name: req.params.name });
-    if (!doc)
-      return res
-        .status(404)
-        .json({ success: false, message: "Not found in DB" });
-
-    const fp = path2.join(UPLOAD_DIR2, doc.filename);
-    if (fs2.existsSync(fp)) {
-      try {
-        fs2.unlinkSync(fp);
-      } catch (e) {
-        console.warn("unlink failed:", e.message);
-      }
-    }
-
-    await Image2.deleteOne({ _id: doc._id });
-    res.json({ success: true });
-  } catch (e) {
-    console.error("DELETE error:", e);
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-});
-
-module.exports = edit;
+module.exports = router;

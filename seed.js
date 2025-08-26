@@ -37,7 +37,7 @@ async function seedImages() {
     for (const img of imagesSeed) {
       await ImageSeed.updateOne(
         { name: img.name },
-        { $set: img },
+        { $setOnInsert: img },
         { upsert: true }
       );
     }
