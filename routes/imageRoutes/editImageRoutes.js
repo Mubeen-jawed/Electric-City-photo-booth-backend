@@ -44,15 +44,15 @@ router.post(
     }),
   async (req, res) => {
     // LOG: comment out in prod if noisy
-    console.log("HIT /upload", {
-      body: req.body,
-      files: (req.files || []).map((f) => ({
-        field: f.fieldname,
-        filename: f.filename,
-        mime: f.mimetype,
-        dest: f.destination,
-      })),
-    });
+    // console.log("HIT /upload", {
+    //   body: req.body,
+    //   files: (req.files || []).map((f) => ({
+    //     field: f.fieldname,
+    //     filename: f.filename,
+    //     mime: f.mimetype,
+    //     dest: f.destination,
+    //   })),
+    // });
 
     try {
       const files = req.files || [];
