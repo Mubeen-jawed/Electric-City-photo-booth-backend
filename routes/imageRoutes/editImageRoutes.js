@@ -36,7 +36,6 @@ function acceptAny(upload) {
  */
 router.post(
   "/upload",
-  acceptAny(upload),
   (req, res, next) =>
     upload.any()(req, res, (err) => {
       if (err)
