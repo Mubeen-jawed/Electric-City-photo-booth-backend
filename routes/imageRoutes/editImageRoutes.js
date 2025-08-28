@@ -1,18 +1,42 @@
-// routes/editImageRoutes.js
+// routes/imageRoutes/editImageRoutes.js
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const Image = require("../../models/Image");
-const { upload, UPLOAD_DIR } = require("./_mediaCommon"); // from your first patch
+const { upload, UPLOAD_DIR } = require("./_mediaCommon");
 
 const router = express.Router();
-
-// tiny helper to escape regex
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-// ACCEPT image|video|file from ANY page; persist to Mongo; keep section unless explicitly changed.
+// Preflight (extra-safe; cors() is also enabled app-wide)
+router.options("/upload", (req, res) => {
+  res
+    .set("Access-Control-Allow-Origin", "*")
+    .set("Access-Control-Allow-Methods", "POST,OPTIONS")
+    .set("Access-Control-Allow-Headers", "Content-Type")
+    .sendStatus(200);
+});
+
+function acceptAny(upload) {
+  return (req, res, next) => {
+    upload.single("image")(req, res, (e) => {
+      if (!e && req.file) return next();
+      upload.single("video")(req, res, (e2) => {
+        if (!e2 && req.file) return next();
+        upload.single("file")(req, res, next);
+      });
+    });
+  };
+}
+
+/**
+ * Edit/replace by logical name; creates only if section provided.
+ * Accepts field name: image | video | file (multer.any()).
+ * Body: name (required), [newName], [section], file in image/video/file.
+ */
 router.post(
   "/upload",
+  acceptAny(upload),
   (req, res, next) =>
     upload.any()(req, res, (err) => {
       if (err)
@@ -20,42 +44,34 @@ router.post(
       next();
     }),
   async (req, res) => {
+    // LOG: comment out in prod if noisy
     console.log("HIT /upload", {
       body: req.body,
       files: (req.files || []).map((f) => ({
         field: f.fieldname,
-        fn: f.filename,
+        filename: f.filename,
         mime: f.mimetype,
+        dest: f.destination,
       })),
     });
 
     try {
-      // pick first uploaded file (multer.any puts them in req.files[])
-      console.log("Try");
-
-      const file =
-        req.file ||
-        (Array.isArray(req.files) && req.files[0]) ||
-        req?.files?.image?.[0] ||
-        req?.files?.video?.[0] ||
-        req?.files?.file?.[0] ||
-        null;
-
+      const files = req.files || [];
+      const file = files[0] || null; // pick first uploaded file
       const rawName = String(req.body.name || "").trim();
       const rawNewName =
         req.body.newName != null ? String(req.body.newName).trim() : "";
       const bodySection =
         req.body.section != null ? String(req.body.section).trim() : "";
 
-      if (!file || !rawName)
+      if (!file || !rawName) {
         return res
           .status(400)
           .json({ success: false, message: "Missing name or file" });
+      }
 
-      // Try exact match first
+      // Find existing (exact → case-insensitive fallback)
       let existing = await Image.findOne({ name: rawName });
-
-      // Fallback: case-insensitive match (helps if some pages differ in case)
       if (!existing) {
         existing = await Image.findOne({
           name: { $regex: new RegExp(`^${esc(rawName)}$`, "i") },
@@ -76,16 +92,17 @@ router.post(
             .json({ success: false, message: "newName already exists" });
       }
 
-      // --- UPDATE EXISTING ---
+      // UPDATE existing
       if (existing) {
         const oldFilename = existing.filename;
 
         existing.filename = file.filename;
-        if (bodySection) existing.section = bodySection; // only change section when explicitly provided
+        if (bodySection) existing.section = bodySection; // only change if sent
         if (nextName !== existing.name) existing.name = nextName;
 
-        await existing.save(); // <— PERSIST TO DB
+        await existing.save();
 
+        // cleanup old file
         if (oldFilename && oldFilename !== existing.filename) {
           const oldPath = path.join(UPLOAD_DIR, oldFilename);
           if (fs.existsSync(oldPath)) fs.unlink(oldPath, () => {});
@@ -100,7 +117,7 @@ router.post(
         });
       }
 
-      // --- CREATE IF MISSING (ONLY when section is provided, so equipment stays in equipment) ---
+      // CREATE only when section provided (avoid dumping into wrong section)
       if (!bodySection) {
         return res.status(404).json({
           success: false,

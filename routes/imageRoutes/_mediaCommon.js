@@ -1,12 +1,13 @@
+// routes/imageRoutes/_mediaCommon.js
 const fs = require("fs");
 const path = require("path");
 const multer = require("multer");
 
-// ---- Upload directory ----
+// IMPORTANT: folder is <project-root>/uploads
 const UPLOAD_DIR = path.join(__dirname, "../../uploads");
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
-// ---- MIME & VIDEO helpers ----
+// MIME map + helpers
 const MIME_BY_EXT = {
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
@@ -21,12 +22,12 @@ const VIDEO_EXT = new Set([".mp4", ".webm", ".mov"]);
 
 function setCORS(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Range, Content-Type");
+  res.setHeader("Access-Control-Allow-Methods", "GET,HEAD,POST,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Range");
   res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
 }
 
-// ---- Multer (shared) ----
+// Multer storage + filter
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
   filename: (_req, file, cb) => {
