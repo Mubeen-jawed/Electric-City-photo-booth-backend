@@ -3,7 +3,7 @@ const path = require("path");
 const multer = require("multer");
 
 // ---- Upload directory ----
-const UPLOAD_DIR = path.join(__dirname, "../uploads");
+const UPLOAD_DIR = path.join(__dirname, "../../uploads");
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 // ---- MIME & VIDEO helpers ----
