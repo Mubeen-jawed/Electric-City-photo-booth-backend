@@ -107,3 +107,78 @@ media.get("/:name", async (req, res) => {
 });
 
 module.exports = media;
+// routes/imageRoutes/mediaServeRoutes.js
+// routes/imageRoutes/mediaServeRoutes.js
+// routes/imageRoutes/mediaServeRoutes.js
+// const express = require("express");
+// const path = require("path");
+// const Image = require("../../models/Image");
+// const { setCORS, publicUrl } = require("./_mediaCommon");
+
+// const media = express.Router();
+
+// const isR2Key = (v) => typeof v === "string" && v.includes("/");
+// const legacyUrl = (req, filename) =>
+//   `${req.protocol}://${req.get("host")}/uploads/${encodeURIComponent(
+//     path.basename(filename)
+//   )}`;
+
+// // List by section (include absolute URL for convenience)
+// media.get("/section/:section", async (req, res) => {
+//   try {
+//     const docs = await Image.find({ section: req.params.section }).sort({
+//       _id: -1,
+//     });
+//     const images = docs.map((d) => ({
+//       ...d.toObject(),
+//       url: isR2Key(d.filename)
+//         ? publicUrl(d.filename)
+//         : legacyUrl(req, d.filename),
+//     }));
+//     res.json({ success: true, images });
+//   } catch (e) {
+//     console.error("Section list error:", e);
+//     res.status(500).json({ success: false, message: "Internal server error" });
+//   }
+// });
+
+// // CORS preflight
+// media.options("/:name", (req, res) => {
+//   setCORS(res);
+//   res.sendStatus(200);
+// });
+
+// // HEAD by name → expose target Location
+// media.head("/:name", async (req, res) => {
+//   try {
+//     const doc = await Image.findOne({ name: req.params.name });
+//     if (!doc) return res.sendStatus(404);
+//     setCORS(res);
+//     const url = isR2Key(doc.filename)
+//       ? publicUrl(doc.filename)
+//       : legacyUrl(req, doc.filename);
+//     res.setHeader("Location", url);
+//     res.sendStatus(200);
+//   } catch (e) {
+//     console.error("HEAD error:", e);
+//     res.sendStatus(500);
+//   }
+// });
+
+// // GET by name → redirect to R2 (new) or local /uploads (legacy)
+// media.get("/:name", async (req, res) => {
+//   try {
+//     const doc = await Image.findOne({ name: req.params.name });
+//     if (!doc) return res.status(404).send("Not found");
+//     setCORS(res);
+//     const url = isR2Key(doc.filename)
+//       ? publicUrl(doc.filename)
+//       : legacyUrl(req, doc.filename);
+//     return res.redirect(302, url);
+//   } catch (err) {
+//     console.error("redirect error:", err);
+//     res.status(500).send("Server error");
+//   }
+// });
+
+// module.exports = media;

@@ -147,3 +147,129 @@ router.post(
 );
 
 module.exports = router;
+// routes/imageRoutes/editImageRoutes.js
+// routes/imageRoutes/editImageRoutes.js
+// routes/imageRoutes/editImageRoutes.js
+// const express = require("express");
+// const Image = require("../../models/Image");
+// const { upload, s3, publicUrl } = require("./_mediaCommon");
+// const { DeleteObjectCommand } = require("@aws-sdk/client-s3");
+
+// const router = express.Router();
+// const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+// // Preflight
+// router.options("/upload", (req, res) => {
+//   res
+//     .set("Access-Control-Allow-Origin", "*")
+//     .set("Access-Control-Allow-Methods", "POST,OPTIONS")
+//     .set("Access-Control-Allow-Headers", "Content-Type")
+//     .sendStatus(200);
+// });
+
+// router.post(
+//   "/upload",
+//   (req, res, next) =>
+//     upload.any()(req, res, (err) => {
+//       if (err)
+//         return res.status(400).json({ success: false, message: err.message });
+//       next();
+//     }),
+//   async (req, res) => {
+//     try {
+//       const file = (req.files || [])[0] || null;
+//       const rawName = String(req.body.name || "").trim();
+//       const rawNewName =
+//         req.body.newName != null ? String(req.body.newName).trim() : "";
+//       const bodySection =
+//         req.body.section != null ? String(req.body.section).trim() : "";
+//       if (!file || !rawName) {
+//         return res
+//           .status(400)
+//           .json({ success: false, message: "Missing name or file" });
+//       }
+
+//       // find existing (exact → case-insensitive)
+//       let existing = await Image.findOne({ name: rawName });
+//       if (!existing) {
+//         existing = await Image.findOne({
+//           name: { $regex: new RegExp(`^${esc(rawName)}$`, "i") },
+//         });
+//       }
+
+//       const nextName =
+//         rawNewName && rawNewName !== (existing?.name || rawName)
+//           ? rawNewName
+//           : existing?.name || rawName;
+
+//       if (existing && nextName !== existing.name) {
+//         const clash = await Image.findOne({ name: nextName });
+//         if (clash)
+//           return res
+//             .status(409)
+//             .json({ success: false, message: "newName already exists" });
+//       }
+
+//       // UPDATE existing → save new R2 key, delete old R2 object if there was one
+//       if (existing) {
+//         const oldKey = existing.filename; // could be legacy (no "/") or R2 key (has "/")
+//         const newKey = file.key;
+//         existing.filename = newKey;
+//         if (bodySection) existing.section = bodySection;
+//         if (nextName !== existing.name) existing.name = nextName;
+//         await existing.save();
+
+//         // delete old object only if it was on R2
+//         if (oldKey && String(oldKey).includes("/")) {
+//           try {
+//             await s3.send(
+//               new DeleteObjectCommand({
+//                 Bucket: process.env.S3_BUCKET,
+//                 Key: oldKey,
+//               })
+//             );
+//           } catch (e) {
+//             console.warn("R2 delete old object failed:", e?.message || e);
+//           }
+//         }
+
+//         return res.json({
+//           success: true,
+//           name: existing.name,
+//           filename: newKey,
+//           section: existing.section,
+//           url: publicUrl(newKey),
+//         });
+//       }
+
+//       // CREATE only if section provided
+//       if (!bodySection) {
+//         return res.status(404).json({
+//           success: false,
+//           message: "Image not found; include `section` to create it here.",
+//         });
+//       }
+
+//       const created = await Image.create({
+//         name: nextName,
+//         filename: file.key,
+//         section: bodySection,
+//       });
+
+//       return res.json({
+//         success: true,
+//         name: created.name,
+//         filename: created.filename,
+//         section: created.section,
+//         url: publicUrl(created.filename),
+//       });
+//     } catch (e) {
+//       console.error("upload edit error:", e);
+//       return res
+//         .status(500)
+//         .json({ success: false, message: "Internal server error" });
+//     }
+//   }
+// );
+
+// module.exports = router;

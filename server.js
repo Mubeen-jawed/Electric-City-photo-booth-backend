@@ -67,7 +67,7 @@
 // // Start server (fix template literal)
 // const PORT = process.env.PORT || 5000;
 // app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-
+// ------------------------------------------------------------------------------------
 const expressMain = require("express");
 const mongooseMain = require("mongoose");
 const pathMain = require("path");
@@ -120,3 +120,67 @@ const PORT_MAIN = process.env.PORT || 5000;
 appMain.listen(PORT_MAIN, () =>
   console.log(`🚀 Server running on port ${PORT_MAIN}`)
 );
+
+// server.js (hybrid: legacy /uploads + R2)
+// const dotenv = require("dotenv");
+// dotenv.config(); // <-- load env FIRST
+
+// const express = require("express");
+// const mongoose = require("mongoose");
+// const cors = require("cors");
+// const session = require("express-session");
+// const path = require("path");
+
+// // Routes
+// const authRoutes = require("./routes/auth");
+// const addNewImageRoutes = require("./routes/imageRoutes/addNewImageRoutes");
+// const editImageRoutes = require("./routes/imageRoutes/editImageRoutes");
+// const mediaServeRoutes = require("./routes/imageRoutes/mediaServeRoutes"); // hybrid redirects
+
+// const app = express();
+
+// // Trust proxy (so req.protocol is correct behind Koyeb)
+// app.set("trust proxy", 1);
+
+// // Basic middleware
+// app.use(cors()); // tighten origin later if you want
+// app.use(express.json());
+// app.use(express.urlencoded({ extended: true }));
+
+// // HYBRID: serve legacy files still on disk
+// // NOTE: On Koyeb Free, these files can disappear on restart (ephemeral disk).
+// app.use(
+//   "/uploads",
+//   express.static(path.join(__dirname, "uploads"), {
+//     maxAge: "365d",
+//     etag: true,
+//   })
+// );
+
+// // (Optional) sessions if you actually use them
+// app.use(
+//   session({
+//     secret: process.env.SESSION_SECRET || "change-me",
+//     resave: false,
+//     saveUninitialized: false,
+//     cookie: { maxAge: 2 * 60 * 60 * 1000, secure: false },
+//   })
+// );
+
+// // Routes
+// app.use("/api", authRoutes);
+// app.use("/api/images", addNewImageRoutes); // POST /addNewImages (to R2)
+// app.use("/api/images", editImageRoutes); // POST /upload (to R2)
+// app.use("/api/images", mediaServeRoutes); // GET/HEAD redirects (R2 or /uploads)
+
+// // MongoDB
+// mongoose
+//   .connect(process.env.MONGO_URI, {
+//     useNewUrlParser: true,
+//     useUnifiedTopology: true,
+//   })
+//   .then(() => console.log("✅ MongoDB connected"))
+//   .catch((err) => console.error("MongoDB connection error:", err));
+
+// const PORT = process.env.PORT || 5000;
+// app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
