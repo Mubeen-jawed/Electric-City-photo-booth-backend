@@ -1,9 +1,11 @@
 const mongoose = require("mongoose");
 
 const imageSchema = new mongoose.Schema({
-  name: { type: String, required: true, unique: true }, // e.g. 'home-hero'
-  filename: { type: String, required: true }, // e.g. 'hero-banner.jpg'
-  section: { type: String }, // optional: e.g. 'homepage', 'gallery'
+  name: { type: String, required: true, unique: true },
+  filename: { type: String },
+  section: { type: String },
+  url: { type: String }, // public URL when stored in S3
+  key: { type: String }, // S3 object key for deletion
 });
 // ImageSchema.index({ name: 1 }, { unique: true });
 

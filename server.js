@@ -75,12 +75,11 @@ const corsMain = require("cors");
 const dotenvMain = require("dotenv");
 const sessionMain = require("express-session");
 
-const authRoutesMain = require("./routes/auth");
-const addNewImageRoutes = require("./routes/imageRoutes/addNewImageRoutes");
-const editImageRoutes = require("./routes/imageRoutes/editImageRoutes");
-const mediaServeRoutes = require("./routes/imageRoutes/mediaServeRoutes");
-
+// Load env BEFORE requiring routes that read env
 dotenvMain.config();
+
+const authRoutesMain = require("./routes/auth");
+const imageRoutes = require("./routes/imageRoutes");
 const appMain = expressMain();
 
 appMain.set("trust proxy", 1);
@@ -93,9 +92,10 @@ appMain.use(
   expressMain.static(pathMain.join(__dirname, "uploads"))
 );
 
+const sessionSecret = process.env.SESSION_SECRET || "change-me";
 appMain.use(
   sessionMain({
-    secret: process.env.SESSION_SECRET,
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
     cookie: { maxAge: 2 * 60 * 60 * 1000, secure: false },
@@ -103,10 +103,7 @@ appMain.use(
 );
 
 appMain.use("/api", authRoutesMain);
-// Mount ALL images routers under the SAME base so frontend paths stay identical
-appMain.use("/api/images", addNewImageRoutes);
-appMain.use("/api/images", editImageRoutes);
-appMain.use("/api/images", mediaServeRoutes);
+appMain.use("/api/images", imageRoutes);
 
 mongooseMain
   .connect(process.env.MONGO_URI, {

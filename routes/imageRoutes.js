@@ -2,11 +2,16 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const multer = require("multer");
+const {
+  buildObjectKey,
+  uploadBufferToS3,
+  deleteFromS3,
+} = require("../utils/s3");
 const Image = require("../models/Image");
 
 const router = express.Router();
 
-// ---- Upload directory ----
+// ---- Upload directory (legacy local) ----
 const UPLOAD_DIR = path.join(__dirname, "../uploads");
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
@@ -23,15 +28,8 @@ const MIME_BY_EXT = {
 };
 const VIDEO_EXT = new Set([".mp4", ".webm", ".mov"]);
 
-// ---- Multer ----
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
-  filename: (_req, file, cb) => {
-    const ext = (path.extname(file.originalname) || "").toLowerCase();
-    const id = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    cb(null, `media-${id}${ext}`);
-  },
-});
+// ---- Multer (memory storage for S3) ----
+const storage = multer.memoryStorage();
 const fileFilter = (_req, file, cb) => {
   const ok = /^image\/(jpeg|png|webp|gif)$|^video\/(mp4|webm|quicktime)$/.test(
     file.mimetype
@@ -82,13 +80,22 @@ router.post(
           .status(400)
           .json({ success: false, message: "Missing fields" });
       }
-      const image = new Image({ name, filename: req.file.filename, section });
+      // Upload to S3
+      const bucket = process.env.AWS_S3_BUCKET || process.env.S3_BUCKET;
+      const key = buildObjectKey(section, req.file.originalname);
+      const url = await uploadBufferToS3({
+        buffer: req.file.buffer,
+        bucket,
+        key,
+        contentType: req.file.mimetype,
+      });
+
+      const image = new Image({ name, section, url, key });
       await image.save();
       res.json({
         success: true,
         name: image.name,
-        filename: image.filename,
-        url: `/uploads/${image.filename}`,
+        url: image.url,
       });
     } catch (e) {
       console.error("addNewImages error:", e);
@@ -132,27 +139,33 @@ router.post(
         }
       }
 
+      // Upload new file to S3
+      const bucket = process.env.AWS_S3_BUCKET || process.env.S3_BUCKET;
+      const key = buildObjectKey(section || doc?.section || "gallery", req.file.originalname);
+      const url = await uploadBufferToS3({
+        buffer: req.file.buffer,
+        bucket,
+        key,
+        contentType: req.file.mimetype,
+      });
+
       if (!doc) {
-        // create new if not found (auto-seed behavior)
+        // create new if not found
         doc = new Image({
           name: newName || name,
-          filename: req.file.filename,
           section: section || "gallery",
+          url,
+          key,
         });
         await doc.save();
       } else {
-        // update existing
-        // delete old file (best-effort)
-        if (doc.filename) {
-          const oldPath = path.join(UPLOAD_DIR, doc.filename);
-          if (fs.existsSync(oldPath)) {
-            try {
-              fs.unlinkSync(oldPath);
-            } catch {}
-          }
+        // delete old from S3 if exists
+        if (doc.key) {
+          await deleteFromS3({ bucket, key: doc.key });
         }
-        doc.filename = req.file.filename;
-        if (section) doc.section = section; // allow section change when provided
+        doc.url = url;
+        doc.key = key;
+        if (section) doc.section = section;
         if (newName && newName !== name) doc.name = newName;
         await doc.save();
       }
@@ -160,9 +173,8 @@ router.post(
       return res.json({
         success: true,
         name: doc.name,
-        filename: doc.filename,
         section: doc.section,
-        url: `/uploads/${doc.filename}`,
+        url: doc.url,
       });
     } catch (e) {
       console.error("upload upsert error:", e);
@@ -183,7 +195,12 @@ router.head("/:name", async (req, res) => {
   try {
     const doc = await Image.findOne({ name: req.params.name });
     if (!doc) return res.sendStatus(404);
-
+    // If stored on S3, just redirect for HEAD so clients can probe the object directly
+    if (doc.url) {
+      setCORS(res);
+      return res.redirect(302, doc.url);
+    }
+    if (!doc.filename) return res.sendStatus(404);
     const filePath = path.join(UPLOAD_DIR, doc.filename);
     if (!fs.existsSync(filePath)) return res.sendStatus(404);
 
@@ -208,7 +225,12 @@ router.get("/:name", async (req, res) => {
   try {
     const doc = await Image.findOne({ name: req.params.name });
     if (!doc) return res.status(404).send("Not found");
-
+    // If stored on S3, redirect to the public URL
+    if (doc.url) {
+      setCORS(res);
+      return res.redirect(302, doc.url);
+    }
+    if (!doc.filename) return res.status(404).send("File not found");
     const filePath = path.join(UPLOAD_DIR, doc.filename);
     if (!fs.existsSync(filePath)) return res.status(404).send("File not found");
 
@@ -267,12 +289,18 @@ router.delete("/:name", async (req, res) => {
         .status(404)
         .json({ success: false, message: "Not found in DB" });
 
-    const fp = path.join(UPLOAD_DIR, doc.filename);
-    if (fs.existsSync(fp)) {
-      try {
-        fs.unlinkSync(fp);
-      } catch (e) {
-        console.warn("unlink failed:", e.message);
+    // delete from S3 when tracked
+    if (doc.key && process.env.AWS_S3_BUCKET) {
+      await deleteFromS3({ bucket: process.env.AWS_S3_BUCKET, key: doc.key });
+    } else if (doc.filename) {
+      // legacy local delete fallback
+      const fp = path.join(UPLOAD_DIR, doc.filename);
+      if (fs.existsSync(fp)) {
+        try {
+          fs.unlinkSync(fp);
+        } catch (e) {
+          console.warn("unlink failed:", e.message);
+        }
       }
     }
 
